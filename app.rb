@@ -1,5 +1,10 @@
+#!/usr/bin/env ruby
+
 require 'sinatra'
 require 'firebase'
+
+set :bind, '0.0.0.0'
+set :logging, true
 
 FIREBASE_URL = 'https://dazzling-fire-7049.firebaseio.com/'
 firebase = Firebase::Client.new(FIREBASE_URL)
@@ -39,4 +44,22 @@ post '/reserve' do
   firebase.set("servers/#{server_name}", {isInUse: true, owner: owner_id })
 
   "Server #{server_name} is now owned by #{params['owner']}"
+end
+
+post '/disown' do
+  return "'server' param not provided." unless params.key? 'server'
+
+  servers = firebase.get('servers')
+  owners = firebase.get('users')
+
+  server_name = params['server']
+  unless servers.body.key? server_name
+    return "server '#{server_name}' not found."
+  end
+
+  owner_id = owners.body.find_index('** Free **')
+
+  firebase.set("servers/#{server_name}", {isInUse: true, owner: owner_id })
+
+  "Server #{server_name} is now available for use."
 end
